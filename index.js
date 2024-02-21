@@ -364,6 +364,11 @@ app.get('/api/v1/projects', verifyToken, async (req, res) => {
         if (req.user.role === 'admin') {
             const pipeline = [
                 {
+                    $match: {
+                        email: req.user.email
+                    }
+                },
+                {
                     $addFields: {
                         assigned_to: { $toObjectId: "$assigned_to" }
                     }
