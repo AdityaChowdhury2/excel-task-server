@@ -125,7 +125,6 @@ app.get('/api/v1/users/current', async (req, res) => {
 app.get('/api/v1/users', verifyToken, async (req, res) => {
     try {
         const role = req.query.role;
-        // console.log(req.user);
         const isAdmin = req.user.role === 'admin';
         let query = {};
         if (role) {
@@ -140,9 +139,8 @@ app.get('/api/v1/users', verifyToken, async (req, res) => {
                 }
             }
         }
-        // console.log(query);
         const result = await userCollection.find(query).toArray()
-        // console.log(result);
+
         return res.status(200).send(result);
 
     } catch (error) {
@@ -153,14 +151,8 @@ app.get('/api/v1/users', verifyToken, async (req, res) => {
 app.get('/api/v1/tasks', verifyToken, async (req, res) => {
     try {
         let { searchBy, searchText } = req.query;
-        // console.log(searchBy, searchText);
-        // if (searchBy === 'dueDate' && searchText !== null && searchText) {
-        //     console.log(new Date(searchText));
-        // }
         let filter = {};
-        // console.log(searchText, " Searchtext");
         if (searchBy === 'dueDate' && searchText !== null && searchText) {
-            // console.log('in here');
             const date = new Date(searchText);
             searchText = searchValue = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
             filter = {
@@ -175,7 +167,7 @@ app.get('/api/v1/tasks', verifyToken, async (req, res) => {
 
             }
         }
-        // console.log(filter);
+
         const user = await userCollection.findOne({ email: req.user.email });
         const pipeline = [
             {
@@ -234,9 +226,7 @@ app.get('/api/v1/tasks', verifyToken, async (req, res) => {
                     }
                 }
             },
-            {
-                $match: filter
-            },
+
             {
                 $project: {
                     _id: 1,
@@ -249,14 +239,16 @@ app.get('/api/v1/tasks', verifyToken, async (req, res) => {
                     projectId: 1,
                     projectName: "$project_info.project_name",
                     createdByName: "$user_info.name",
+                    dueDateString: 1,
                     daysLeft: 1,
                 }
             },
+            {
+                $match: filter
+            }
         ]
         const result = await taskCollection.aggregate(pipeline).toArray();
         return res.status(200).send(result);
-        // const result = await taskCollection.find().toArray();
-        // res.status(200).send(result)
     } catch (error) {
         res.status(500).send({ message: error.message });
     }
@@ -322,8 +314,7 @@ app.get('/api/v1/tasks/:id', verifyToken, async (req, res) => {
         ]
         const result = await taskCollection.aggregate(pipeline).toArray();
         res.status(200).send(result)
-        // const result = await taskCollection.findOne(query);
-        // res.status(200).send(result);
+
     } catch (error) {
 
     }
@@ -339,8 +330,6 @@ app.patch('/api/v1/tasks/:id', verifyToken, async (req, res) => {
         const update = {
             $set: updates
         }
-
-
         const result = await taskCollection.updateOne(query, update);
         res.status(200).send(result);
     } catch (error) {
@@ -371,7 +360,6 @@ app.post('/api/v1/tasks', verifyToken, async (req, res) => {
 
 app.get('/api/v1/projects', verifyToken, async (req, res) => {
     try {
-        // let query = {};
 
         if (req.user.role === 'admin') {
             const pipeline = [
@@ -395,7 +383,6 @@ app.get('/api/v1/projects', verifyToken, async (req, res) => {
                     $project: {
                         _id: 1,
                         project_name: 1,
-                        // include other fields from projectCollection
                         assigned_to_name: "$user_info.name",
                         assigned_to: "$user_info._id"
                     }
@@ -441,7 +428,7 @@ app.get('/api/v1/projects', verifyToken, async (req, res) => {
                 }
             ]
             const result = await projectCollection.aggregate(pipeline).toArray();
-            // console.log(result);
+
             res.status(200).send(result)
         }
     } catch (error) {
@@ -469,7 +456,7 @@ app.patch('/api/v1/projects/:id', verifyToken, async (req, res) => {
             _id: new ObjectId(id),
         }
         const { project_name, assigned_to } = req.body;
-        // console.log(req.body);
+
         const update = {
             $set: {
                 project_name,
@@ -520,7 +507,7 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
     socket.on('createProject', async (data) => {
-        // console.log(data);
+
         const query = {
             _id: new ObjectId(data),
         }
@@ -557,22 +544,24 @@ io.on('connection', (socket) => {
             }
         ]
         const result = await taskCollection.aggregate(pipeline).toArray();
-        console.log(result);
         io.emit('updateTask', result)
     })
 })
 
 const main = async () => {
     try {
-        await client.db('admin').command({ ping: 1 })
+        // Check database connection
+        await client.db('admin').command({ ping: 1 });
         console.log('Database connection established.💯💯');
+
+        // Start the server and listen on the configured port
         server.listen(port, () => {
-            console.log('Listening on port ' + port);
+            console.log(`Listening on port ${port}`);
         });
     } catch (error) {
+        // Log any errors that occur during initialization
         console.log(error);
     }
 }
-
 
 main();
