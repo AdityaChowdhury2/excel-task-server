@@ -37,7 +37,7 @@ const client = new MongoClient(uri, {
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: [CLIENT, LOCAL_CLIENT],
+        origin: [PROD_CLIENT, LOCAL_CLIENT],
         methods: ["GET", "POST"]
     }
 });
