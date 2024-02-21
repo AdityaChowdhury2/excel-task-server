@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const bcrypt = require('bcrypt');
-const { LOCAL_CLIENT, CLIENT } = require('./src/config/default');
+const { LOCAL_CLIENT, PROD_CLIENT } = require('./src/config/default');
 require('dotenv').config();
 const jwt = require('jsonwebtoken')
 const { Server } = require('socket.io');
@@ -11,7 +11,7 @@ const { Server } = require('socket.io');
 const app = express();
 app.use(cors(
     {
-        origin: [CLIENT, LOCAL_CLIENT],
+        origin: [PROD_CLIENT, LOCAL_CLIENT],
         credentials: true,
     }
 
