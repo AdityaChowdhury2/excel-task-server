@@ -210,6 +210,33 @@ app.get('/api/v1/tasks', verifyToken, async (req, res) => {
             {
                 $unwind: "$project_info"
             },
+
+            {
+                $addFields: {
+                    dueDateString: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$dueDate"
+                        }
+                    },
+                    daysLeft: {
+                        $floor: {
+                            $divide: [
+                                {
+                                    $subtract: [
+                                        "$dueDate",
+                                        new Date()
+                                    ]
+                                },
+                                24 * 60 * 60 * 1000
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                $match: filter
+            },
             {
                 $project: {
                     _id: 1,
@@ -222,21 +249,9 @@ app.get('/api/v1/tasks', verifyToken, async (req, res) => {
                     projectId: 1,
                     projectName: "$project_info.project_name",
                     createdByName: "$user_info.name",
+                    daysLeft: 1,
                 }
             },
-            {
-                $addFields: {
-                    dueDateString: {
-                        $dateToString: {
-                            format: "%Y-%m-%d",
-                            date: "$dueDate"
-                        }
-                    }
-                }
-            },
-            {
-                $match: filter
-            }
         ]
         const result = await taskCollection.aggregate(pipeline).toArray();
         return res.status(200).send(result);
@@ -398,13 +413,30 @@ app.get('/api/v1/projects', verifyToken, async (req, res) => {
                     }
                 },
                 {
+                    $addFields: {
+                        idString: { $toString: "$_id" }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'tasks',
+                        localField: 'idString',
+                        foreignField: 'projectId',
+                        as: 'tasks'
+                    }
+                },
+                {
+                    $addFields: {
+                        tasksLength: { $size: '$tasks' }
+                    }
+                },
+                {
                     $project: {
                         _id: 1,
                         project_name: 1,
                         assigned_to_name: user.name,
                         assigned_to: 1,
-
-
+                        tasksLength: 1
                     }
                 }
             ]
