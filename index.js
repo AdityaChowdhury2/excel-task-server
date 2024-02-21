@@ -365,7 +365,7 @@ app.get('/api/v1/projects', verifyToken, async (req, res) => {
             const pipeline = [
                 {
                     $match: {
-                        email: req.user.email
+                        createdBy: req.user.email
                     }
                 },
                 {
