@@ -299,6 +299,7 @@ app.get('/api/v1/tasks/:id', verifyToken, async (req, res) => {
                     priorityLevel: 1,
                     dueDate: 1,
                     manager: "$manager_info.name",
+                    managerEmail: "$manager_info.email",
                     status: 1,
                     project_name: "$project_info.project_name",
                 }
@@ -494,6 +495,38 @@ io.on('connection', (socket) => {
         const result = await projectCollection.findOne(query);
 
         io.emit('createProject', result)
+    })
+    socket.on('updateTask', async ({ _id }) => {
+        console.log(_id);
+        const query = {
+            _id: new ObjectId(_id),
+        }
+        const pipeline = [
+            {
+                $match: query
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "createdBy",
+                    foreignField: "email",
+                    as: "user_info"
+                }
+            },
+            {
+                $unwind: "$user_info"
+            },
+            {
+                $project: {
+                    _id: 1,
+                    title: 1,
+                    createdBy: 1,
+                }
+            }
+        ]
+        const result = await taskCollection.aggregate(pipeline).toArray();
+        console.log(result);
+        io.emit('updateTask', result)
     })
 })
 
